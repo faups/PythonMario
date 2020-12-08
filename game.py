@@ -18,7 +18,7 @@ class Sprite():
         return
 
     def draw(self, screen, offset):
-        self.rect = (self.x, self.y, self.width, self.height)
+        self.rect = (self.x - offset + 50, self.y, self.width, self.height)
         screen.blit(self.image, self.rect)
 
 
@@ -51,9 +51,9 @@ class Mario(Sprite):
             self.framesSinceSolidGround = 0
 
     def draw(self, screen, offset):
-        self.rect = (self.x, self.y, self.width, self.height)
+        self.rect = (50, self.y, self.width, self.height)
         screen.blit(self.image, self.rect)
-        print(self.rect)
+
 
 class Tube(Sprite):
     def __init__(self, x, y):
@@ -80,23 +80,23 @@ class Goomba(Sprite):
         self.movingRight = True
         self.onFire = False
         self.framesSinceOnFire = 0
-        
 
     def update(self):
         if self.movingRight:
             self.x += 1
         else:
             self.x -= 1
-        
+
         if self.onFire:
             self.framesSinceOnFire += 1
-    
+
     def draw(self, screen, offset):
-        self.rect = (self.x, self.y, self.width, self.height)
+        self.rect = (self.x - offset + 50, self.y, self.width, self.height)
         if self.onFire:
             screen.blit(self.images[1], self.rect)
         else:
             screen.blit(self.images[0], self.rect)
+
 
 class Fireball(Sprite):
     def __init__(self, x, y):
@@ -107,7 +107,6 @@ class Fireball(Sprite):
         self.y = y
         self.type = 3
         self.velocity = 0
-        
 
     def update(self):
         self.x += 2
@@ -118,8 +117,9 @@ class Fireball(Sprite):
             self.y = 400 - self.height
 
     def draw(self, screen, offset):
-        self.rect = (self.x, self.y, self.width, self.height)
+        self.rect = (self.x - offset + 100, self.y, self.width, self.height)
         screen.blit(self.image, self.rect)
+
 
 class Model():
     def __init__(self):
@@ -138,25 +138,33 @@ class Model():
     def update(self):
         for s in self.sprites:
             s.update()
+
         self.colliding = False
         for s in self.sprites:
             if self.isColliding(self.mario, s) and s.type == 1:
                 self.colliding = True
+
                 if self.mario.py + self.mario.height < s.y:
                     self.mario.y = s.y - self.mario.height
                     self.mario.velocity = 0
                     self.mario.framesSinceSolodGround = 0
+
                 elif self.mario.py > s.y + s.height:
                     self.mario.y = s.y + s.height
                     self.mario.velocity = 0
+
                 elif self.mario.px + self.mario.width < s.x:
                     self.mario.x = s.x - self.mario.width
+
                 elif self.mario.px > s.x + s.width:
                     self.mario.x = s.x + s.width
+
                 self.mario.framesSinceSolodGround = 0
+
         if not self.colliding:
             self.mario.px = self.mario.x
             self.mario.py = self.mario.y
+
         for s1 in self.sprites:
             for s2 in self.sprites:
                 if (self.isColliding(s1, s2)):
@@ -164,29 +172,36 @@ class Model():
                         s1.movingRight = not s1.movingRight
                     if s1.type == 3 and s2.type == 2:
                         s2.onFire = True
+
         for s in self.sprites:
             if s.type == 2:
                 if s.framesSinceOnFire > 40:
                     self.sprites.remove(s)
                     break
-    
+
     def isColliding(self, s1, s2):
-        if s1 == s2: return False
-        if s1.x + s1.width < s2.x: return False
-        if s1.x > s2.x + s2.width: return False
-        if s1.y + s1.height < s2.y: return False
-        if s1.y > s2.y + s2.height: return False
+        if s1 == s2:
+            return False
+        if s1.x + s1.width < s2.x:
+            return False
+        if s1.x > s2.x + s2.width:
+            return False
+        if s1.y + s1.height < s2.y:
+            return False
+        if s1.y > s2.y + s2.height:
+            return False
         return True
 
 
 class View():
     def __init__(self, model):
-        screen_size = (800, 600)
+        screen_size = (700, 500)
         self.screen = pygame.display.set_mode(screen_size, 32)
         self.model = model
 
     def update(self):
-        self.screen.fill([0, 200, 100])
+        self.screen.fill([4, 156, 216])
+        pygame.draw.rect(self.screen, [67, 176, 71], (0, 400, 700, 500))
         for s in self.model.sprites:
             s.draw(self.screen, self.model.mario.x)
         pygame.display.flip()
@@ -197,6 +212,7 @@ class Controller():
         self.model = model
         self.view = view
         self.keep_going = True
+        self.thrownFireball = False
 
     def update(self):
         for event in pygame.event.get():
@@ -205,17 +221,27 @@ class Controller():
             elif event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     self.keep_going = False
+
         keys = pygame.key.get_pressed()
+
         if keys[K_LEFT] and not keys[K_RIGHT]:
             self.model.mario.x -= 4
             self.model.mario.imageIndex += 1
+
         elif keys[K_RIGHT] and not keys[K_LEFT]:
             self.model.mario.x += 4
             self.model.mario.imageIndex += 1
+
         if keys[K_SPACE] and self.model.mario.framesSinceSolidGround < 5:
-            self.model.mario.velocity -= 20
-        if keys[K_LCTRL]:
-            self.model.sprites.append(Fireball(self.model.mario.x, self.model.mario.y + 30))
+            self.model.mario.velocity -= 5
+
+        if keys[K_LCTRL] and not self.thrownFireball:
+            self.thrownFireball = True
+            self.model.sprites.append(
+                Fireball(self.model.mario.x, self.model.mario.y + 30))
+
+        elif not keys[K_LCTRL]:
+            self.thrownFireball = False
 
 
 pygame.init()
@@ -227,4 +253,4 @@ while c.keep_going:
     m.update()
     v.update()
     sleep(0.016)
-print("Goodbye")
+print("Tschüss!")
