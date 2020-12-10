@@ -172,6 +172,8 @@ class Model():
                         s1.movingRight = not s1.movingRight
                     if s1.type == 3 and s2.type == 2:
                         s2.onFire = True
+                        self.sprites.remove(s1)
+                        break
 
         for s in self.sprites:
             if s.type == 2:
